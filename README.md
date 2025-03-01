@@ -2,7 +2,7 @@
 
 Для начала раскажу как запустить нашу программу
 
-1. можно скачать разработаное нами приложение разработанное командой DutySA
+1. можно скачать разработаное нами приложение
    оно находится на
    1. Яндекс диск https://disk.yandex.ru/d/GF5RzRt4PIHSmQ
    2. Google Drive https://drive.google.com/file/d/1PrHLJkmieIrI4yIIEIdhI1OCwBEjnAna/view?usp=sharing
