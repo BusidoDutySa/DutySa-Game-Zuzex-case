@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Finger+Paint&display=swap" rel="stylesheet">
+    <title>Камень, Ножницы, Бумага - Игра</title>
+    <style>
+        .user-profile {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .user-profile-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin-right: 15px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .user-profile-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-profile-placeholder {
+            font-size: 30px;
+            color: #999;
+        }
+        
+        .user-info {
+            color: white;
+        }
+        
+        .user-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+        
+        .user-info p {
+            margin: 0;
+            font-size: 14px;
+        }
+        
+        .profile-image-input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Профиль пользователя -->
+        <div class="user-profile">
+            <div class="user-profile-image" id="user-profile-image">
+                <span class="user-profile-placeholder">+</span>
+                <input type="file" class="profile-image-input" id="profile-image-input" accept="image/*">
+            </div>
+            <div class="user-info">
+                <h3 id="user-name">Игрок</h3>
+                <p>Побед: <span id="user-wins">0</span></p>
+            </div>
+        </div>
+        
+        <!-- Кнопка выхода -->
+        <a href="index.html" class="exit-button">Выйти из аккаунта</a>
+
+        <!-- Игровое поле -->
+        <div class="game-field">
+            <div class="player-choice">
+                <h3>Ваш выбор</h3>
+                <div class="choice-circle" id="player-choice-display">
+                    <input type="file" id="player-move" accept="image/*">
+                    <label for="player-move">
+                        <img src="icons/camera22.svg" alt="Загрузить" class="camera-icon">
+                    </label>
+                </div>
+            </div>
+            
+            <div class="vs-text">VS</div>
+            
+            <div class="ai-choice">
+                <h3>Выбор компьютера</h3>
+                <div class="choice-circle" id="ai-choice-display">
+                    <span id="ai-choice-text">?</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Результат игры -->
+        <div id="game-result" class="game-result" style="display: none;"></div>
+        
+        <!-- Кнопка "Сыграть ещё раз" -->
+        <button id="play-again-btn" class="play-again-btn" style="display: none;">Сыграть ещё раз</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Проверяем, авторизован ли пользователь
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Элементы интерфейса
+            const playerMoveInput = document.getElementById('player-move');
+            const playerChoiceDisplay = document.getElementById('player-choice-display');
+            const aiChoiceDisplay = document.getElementById('ai-choice-display');
+            const aiChoiceText = document.getElementById('ai-choice-text');
+            const gameResult = document.getElementById('game-result');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const userProfileImage = document.getElementById('user-profile-image');
+            const profileImageInput = document.getElementById('profile-image-input');
+            const userName = document.getElementById('user-name');
+            const userWins = document.getElementById('user-wins');
+            
+            // Отображаем имя пользователя и количество побед
+            userName.textContent = user.username;
+            userWins.textContent = user.wins || 0;
+            
+            // Отображаем фото профиля, если оно есть
+            if (user.profileImage) {
+                try {
+                    const profileImageUrl = window.api.getProfileImagePath(user.profileImage);
+                    console.log('Путь к изображению профиля:', profileImageUrl);
+                    
+                    // Удаляем плейсхолдер, если он есть
+                    const placeholder = userProfileImage.querySelector('.user-profile-placeholder');
+                    if (placeholder) {
+                        placeholder.remove();
+                    }
+                    
+                    // Удаляем предыдущее изображение, если оно есть
+                    const existingImage = userProfileImage.querySelector('img');
+                    if (existingImage) {
+                        existingImage.remove();
+                    }
+                    
+                    // Создаем и добавляем новое изображение
+                    const img = document.createElement('img');
+                    img.src = profileImageUrl;
+                    img.onerror = () => {
+                        console.error('Ошибка загрузки изображения профиля:', profileImageUrl);
+                        // Если изображение не загрузилось, показываем плейсхолдер
+                        if (!userProfileImage.querySelector('.user-profile-placeholder')) {
+                            const placeholder = document.createElement('span');
+                            placeholder.className = 'user-profile-placeholder';
+                            placeholder.textContent = '+';
+                            userProfileImage.appendChild(placeholder);
+                        }
+                    };
+                    userProfileImage.appendChild(img);
+                } catch (error) {
+                    console.error('Ошибка при отображении фото профиля:', error);
+                    // Показываем плейсхолдер в случае ошибки
+                    if (!userProfileImage.querySelector('.user-profile-placeholder')) {
+                        const placeholder = document.createElement('span');
+                        placeholder.className = 'user-profile-placeholder';
+                        placeholder.textContent = '+';
+                        userProfileImage.appendChild(placeholder);
+                    }
+                }
+            }
+            
+            // Обработчик для загрузки нового фото профиля
+            profileImageInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                // Проверяем тип файла
+                if (!file.type.match('image.*')) {
+                    alert('Пожалуйста, выберите изображение');
+                    return;
+                }
+                
+                // Проверяем размер файла (не более 5 МБ)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Размер изображения не должен превышать 5 МБ');
+                    return;
+                }
+                
+                // Показываем индикатор загрузки
+                const loadingPlaceholder = document.createElement('span');
+                loadingPlaceholder.className = 'user-profile-placeholder';
+                loadingPlaceholder.textContent = '...';
+                
+                // Удаляем предыдущее изображение и плейсхолдер
+                const existingImage = userProfileImage.querySelector('img');
+                if (existingImage) {
+                    existingImage.remove();
+                }
+                
+                const existingPlaceholder = userProfileImage.querySelector('.user-profile-placeholder');
+                if (existingPlaceholder) {
+                    existingPlaceholder.remove();
+                }
+                
+                // Добавляем индикатор загрузки
+                userProfileImage.appendChild(loadingPlaceholder);
+                
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const profileImageData = event.target.result;
+                        console.log('Загружаем новое фото профиля...');
+                        
+                        const response = await window.api.updateProfileImage(user.id, profileImageData);
+                        
+                        // Удаляем индикатор загрузки
+                        loadingPlaceholder.remove();
+                        
+                        if (response.success) {
+                            console.log('Фото профиля успешно обновлено:', response.profileImage);
+                            
+                            // Создаем и добавляем новое изображение
+                            const img = document.createElement('img');
+                            const profileImageUrl = window.api.getProfileImagePath(response.profileImage);
+                            console.log('Новый путь к изображению профиля:', profileImageUrl);
+                            
+                            img.src = profileImageUrl;
+                            img.onerror = () => {
+                                console.error('Ошибка загрузки нового изображения профиля:', profileImageUrl);
+                                // Если изображение не загрузилось, показываем плейсхолдер
+                                if (!userProfileImage.querySelector('.user-profile-placeholder')) {
+                                    const placeholder = document.createElement('span');
+                                    placeholder.className = 'user-profile-placeholder';
+                                    placeholder.textContent = '+';
+                                    userProfileImage.appendChild(placeholder);
+                                }
+                            };
+                            userProfileImage.appendChild(img);
+                            
+                            // Обновляем данные пользователя в localStorage
+                            user.profileImage = response.profileImage;
+                            localStorage.setItem('user', JSON.stringify(user));
+                        } else {
+                            console.error('Ошибка при обновлении фото профиля:', response.message);
+                            alert('Ошибка при обновлении фото профиля: ' + (response.message || 'Неизвестная ошибка'));
+                            
+                            // Показываем плейсхолдер в случае ошибки
+                            const placeholder = document.createElement('span');
+                            placeholder.className = 'user-profile-placeholder';
+                            placeholder.textContent = '+';
+                            userProfileImage.appendChild(placeholder);
+                        }
+                    } catch (error) {
+                        console.error('Ошибка при обновлении фото профиля:', error);
+                        alert('Ошибка при обновлении фото профиля: ' + error.message);
+                        
+                        // Удаляем индикатор загрузки
+                        loadingPlaceholder.remove();
+                        
+                        // Показываем плейсхолдер в случае ошибки
+                        const placeholder = document.createElement('span');
+                        placeholder.className = 'user-profile-placeholder';
+                        placeholder.textContent = '+';
+                        userProfileImage.appendChild(placeholder);
+                    }
+                };
+                
+                reader.onerror = () => {
+                    console.error('Ошибка при чтении файла');
+                    alert('Ошибка при чтении файла');
+                    
+                    // Удаляем индикатор загрузки
+                    loadingPlaceholder.remove();
+                    
+                    // Показываем плейсхолдер в случае ошибки
+                    const placeholder = document.createElement('span');
+                    placeholder.className = 'user-profile-placeholder';
+                    placeholder.textContent = '+';
+                    userProfileImage.appendChild(placeholder);
+                };
+                
+                reader.readAsDataURL(file);
+            });
+
+            // Классы жестов
+            const gestures = ['Ножницы', 'Камень', 'Бумага'];
+
+            // Обработчик для кнопки "Сыграть ещё раз"
+            playAgainBtn.addEventListener('click', () => {
+                // Очищаем результат игры
+                gameResult.style.display = 'none';
+                playAgainBtn.style.display = 'none';
+                
+                // Сбрасываем выбор игрока
+                const uploadedImage = playerChoiceDisplay.querySelector('.uploaded-image');
+                if (uploadedImage) {
+                    uploadedImage.remove();
+                }
+                
+                // Показываем иконку камеры
+                const cameraIcon = playerChoiceDisplay.querySelector('.camera-icon');
+                if (cameraIcon) {
+                    cameraIcon.style.display = 'block';
+                }
+                
+                // Сбрасываем выбор компьютера
+                aiChoiceText.textContent = '?';
+            });
+
+            // Обработчик загрузки изображения
+            playerMoveInput.addEventListener('change', async (e) => {
+                if (!e.target.files || !e.target.files[0]) return;
+                
+                const file = e.target.files[0];
+                const imageUrl = URL.createObjectURL(file);
+                
+                // Удаляем предыдущее загруженное изображение, если оно есть
+                const previousImage = playerChoiceDisplay.querySelector('.uploaded-image');
+                if (previousImage) {
+                    previousImage.remove();
+                }
+                
+                // Скрываем иконку камеры
+                const cameraIcon = playerChoiceDisplay.querySelector('.camera-icon');
+                if (cameraIcon) {
+                    cameraIcon.style.display = 'none';
+                }
+                
+                // Создаем и добавляем новое изображение
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.className = 'uploaded-image';
+                playerChoiceDisplay.appendChild(img);
+                
+                // Добавляем обратно иконку камеры, если она была удалена
+                if (!playerChoiceDisplay.querySelector('.camera-icon')) {
+                    const label = document.createElement('label');
+                    label.setAttribute('for', 'player-move');
+                    
+                    const img = document.createElement('img');
+                    img.src = 'icons/camera22.svg';
+                    img.alt = 'Загрузить';
+                    img.className = 'camera-icon';
+                    
+                    label.appendChild(img);
+                    playerChoiceDisplay.appendChild(label);
+                }
+                
+                // Ждем загрузки изображения
+                img.onload = async () => {
+                    try {
+                        // Эмулируем распознавание жеста
+                        // В реальном приложении здесь должна быть интеграция с моделью машинного обучения
+                        const gestureIndex = Math.floor(Math.random() * 3);
+                        const playerGesture = gestures[gestureIndex];
+                        
+                        console.log('Распознан жест:', playerGesture);
+                        
+                        // Генерируем случайный выбор компьютера
+                        const aiGestureIndex = Math.floor(Math.random() * 3);
+                        const aiGesture = gestures[aiGestureIndex];
+                        
+                        // Отображаем выбор компьютера
+                        aiChoiceText.textContent = aiGesture;
+                        
+                        // Определяем победителя
+                        let result;
+                        if (playerGesture === aiGesture) {
+                            result = 'Ничья!';
+                            gameResult.className = 'game-result draw';
+                        } else if (
+                            (playerGesture === 'Камень' && aiGesture === 'Ножницы') ||
+                            (playerGesture === 'Ножницы' && aiGesture === 'Бумага') ||
+                            (playerGesture === 'Бумага' && aiGesture === 'Камень')
+                        ) {
+                            result = 'Вы выиграли!';
+                            gameResult.className = 'game-result win';
+                        } else {
+                            result = 'Вы проиграли!';
+                            gameResult.className = 'game-result lose';
+                        }
+                        
+                        // Отображаем результат
+                        gameResult.textContent = result;
+                        gameResult.style.display = 'block';
+                        
+                        // Показываем кнопку "Сыграть ещё раз"
+                        playAgainBtn.style.display = 'block';
+                        
+                        // Если игрок выиграл, обновляем счет
+                        if (result === 'Вы выиграли!') {
+                            user.wins = (user.wins || 0) + 1;
+                            localStorage.setItem('user', JSON.stringify(user));
+                            await window.api.updateWins(user.id, user.wins);
+                            
+                            // Обновляем отображение количества побед
+                            userWins.textContent = user.wins;
+                        }
+                    } catch (error) {
+                        console.error('Ошибка при распознавании жеста:', error);
+                        gameResult.textContent = 'Ошибка при распознавании жеста';
+                        gameResult.className = 'game-result error';
+                        gameResult.style.display = 'block';
+                        
+                        // Показываем кнопку "Сыграть ещё раз" даже при ошибке
+                        playAgainBtn.style.display = 'block';
+                    }
+                };
+            });
+        });
+    </script>
+</body>
+</html> 

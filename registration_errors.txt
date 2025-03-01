@@ -1,0 +1,2 @@
+Пользователь уже существует
+Ошибка при создании пользователя: SQLITE_ERROR: table users has no column named profile_image

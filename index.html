@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Камень, Ножницы, Бумага</title>
+</head>
+<body>
+  <h1 class="main-name">Камень - Ножницы - Бумага</h1>
+  <div class="content-wrapper">
+    <div id="error-message" class="error-message" style="display: none;">
+      Неверное имя пользователя или пароль, либо аккаунт не существует
+    </div>
+    <div id="success-message" class="success-message" style="display: none;">
+      Вы успешно зарегистрировались!
+    </div>
+    <div class="login-box">
+        <div class="login-header">
+            <header>Авторизуйтесь для того чтобы начать играть</header>
+        </div>
+        <form id="login-form">
+            <div class="input-box">
+                <input type="text" class="input-field" id="username" placeholder="Имя" autocomplete="off" required>
+            </div>
+            <div class="input-box">
+                <input type="password" class="input-field" id="password" placeholder="Пароль" autocomplete="off" required>
+            </div>
+            <div class="input-submit">
+                <button type="submit" class="submit-btn" id="submit"></button>
+                <label for="submit">Войти</label>
+            </div>
+            <div class="sign-up-link">
+                <p>Нету аккаунта? <a href="register.html">Создайте</a></p>
+            </div>
+        </form>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Проверяем, есть ли параметр success в URL
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success') === 'true') {
+        document.getElementById('success-message').style.display = 'block';
+      }
+
+      const loginForm = document.getElementById('login-form');
+      const errorMessage = document.getElementById('error-message');
+
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        
+        try {
+          const response = await window.api.login(username, password);
+          
+          if (response.success) {
+            // Сохраняем данные пользователя в localStorage
+            localStorage.setItem('user', JSON.stringify(response.user));
+            // Перенаправляем на игровую страницу
+            window.location.href = 'game.html';
+          } else {
+            // Показываем сообщение об ошибке
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+              errorMessage.style.display = 'none';
+            }, 3000);
+          }
+        } catch (error) {
+          console.error('Ошибка авторизации:', error);
+          errorMessage.style.display = 'block';
+          setTimeout(() => {
+            errorMessage.style.display = 'none';
+          }, 3000);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

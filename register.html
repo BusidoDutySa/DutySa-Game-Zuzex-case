@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Камень, Ножницы, Бумага</title>
+    <style>
+      .profile-image-container {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        position: relative;
+        overflow: hidden;
+        background-color: #f0f0f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+      }
+      
+      .profile-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      
+      .profile-image-placeholder {
+        font-size: 40px;
+        color: #999;
+      }
+      
+      .profile-image-input {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+      }
+    </style>
+</head>
+<body>
+  <h1 class="main-name">Камень - Ножницы - Бумага</h1>
+  <div class="content-wrapper">
+    <div id="error-message" class="error-message" style="display: none;">
+      Ошибка при регистрации. Пожалуйста, попробуйте другое имя пользователя.
+    </div>
+    <div class="login-box">
+        <div class="login-header">
+            <header>Создание аккаунта</header>
+        </div>
+        <form id="register-form">
+          <div class="profile-image-container" id="profile-image-container">
+            <span class="profile-image-placeholder">+</span>
+            <input type="file" class="profile-image-input" id="profile-image-input" accept="image/*">
+          </div>
+          <div class="input-box">
+              <input type="text" class="input-field" id="username" placeholder="Имя" autocomplete="off" required>
+          </div>
+          <div class="input-box">
+              <input type="password" class="input-field" id="password" placeholder="Пароль" autocomplete="off" required>
+          </div>
+          <div class="input-box">
+              <input type="password" class="input-field" id="confirm-password" placeholder="Повторите пароль" autocomplete="off" required>
+          </div>
+          <div class="input-submit">
+              <button type="submit" class="submit-btn" id="submit"></button>
+              <label for="submit">Создать аккаунт</label>
+          </div>
+          <div class="sign-up-link">
+              <p>Уже есть аккаунт? <a href="index.html">Войдите</a></p>
+          </div>
+        </form>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const registerForm = document.getElementById('register-form');
+      const errorMessage = document.getElementById('error-message');
+      const profileImageInput = document.getElementById('profile-image-input');
+      const profileImageContainer = document.getElementById('profile-image-container');
+      
+      let profileImageData = null;
+      
+      // Обработчик загрузки изображения профиля
+      profileImageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Проверяем тип файла
+        if (!file.type.match('image.*')) {
+          errorMessage.textContent = 'Пожалуйста, выберите изображение';
+          errorMessage.style.backgroundColor = '#ff5252';
+          errorMessage.style.display = 'block';
+          setTimeout(() => {
+            errorMessage.style.display = 'none';
+          }, 3000);
+          return;
+        }
+        
+        // Проверяем размер файла (не более 5 МБ)
+        if (file.size > 5 * 1024 * 1024) {
+          errorMessage.textContent = 'Размер изображения не должен превышать 5 МБ';
+          errorMessage.style.backgroundColor = '#ff5252';
+          errorMessage.style.display = 'block';
+          setTimeout(() => {
+            errorMessage.style.display = 'none';
+          }, 3000);
+          return;
+        }
+        
+        // Показываем индикатор загрузки
+        errorMessage.textContent = 'Загрузка изображения...';
+        errorMessage.style.backgroundColor = '#2196F3';
+        errorMessage.style.display = 'block';
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            // Сохраняем данные изображения в формате base64
+            profileImageData = event.target.result;
+            console.log('Изображение успешно загружено, длина строки:', profileImageData.length);
+            
+            // Скрываем индикатор загрузки
+            errorMessage.style.display = 'none';
+            
+            // Удаляем плейсхолдер и добавляем изображение
+            const placeholder = profileImageContainer.querySelector('.profile-image-placeholder');
+            if (placeholder) {
+              placeholder.remove();
+            }
+            
+            // Удаляем предыдущее изображение, если оно есть
+            const existingImage = profileImageContainer.querySelector('.profile-image');
+            if (existingImage) {
+              existingImage.remove();
+            }
+            
+            // Создаем и добавляем новое изображение
+            const img = document.createElement('img');
+            img.src = profileImageData;
+            img.className = 'profile-image';
+            img.onerror = () => {
+              console.error('Ошибка при отображении загруженного изображения');
+              errorMessage.textContent = 'Ошибка при отображении изображения';
+              errorMessage.style.backgroundColor = '#ff5252';
+              errorMessage.style.display = 'block';
+              setTimeout(() => {
+                errorMessage.style.display = 'none';
+              }, 3000);
+              
+              // Возвращаем плейсхолдер
+              if (!profileImageContainer.querySelector('.profile-image-placeholder')) {
+                const newPlaceholder = document.createElement('span');
+                newPlaceholder.className = 'profile-image-placeholder';
+                newPlaceholder.textContent = '+';
+                profileImageContainer.appendChild(newPlaceholder);
+              }
+            };
+            profileImageContainer.appendChild(img);
+          } catch (error) {
+            console.error('Ошибка при обработке изображения:', error);
+            errorMessage.textContent = 'Ошибка при обработке изображения';
+            errorMessage.style.backgroundColor = '#ff5252';
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+              errorMessage.style.display = 'none';
+            }, 3000);
+            
+            // Возвращаем плейсхолдер, если его нет
+            if (!profileImageContainer.querySelector('.profile-image-placeholder')) {
+              const newPlaceholder = document.createElement('span');
+              newPlaceholder.className = 'profile-image-placeholder';
+              newPlaceholder.textContent = '+';
+              profileImageContainer.appendChild(newPlaceholder);
+            }
+          }
+        };
+        
+        reader.onerror = () => {
+          console.error('Ошибка при чтении файла');
+          errorMessage.textContent = 'Ошибка при чтении файла';
+          errorMessage.style.backgroundColor = '#ff5252';
+          errorMessage.style.display = 'block';
+          setTimeout(() => {
+            errorMessage.style.display = 'none';
+          }, 3000);
+        };
+        
+        reader.readAsDataURL(file);
+      });
+
+      registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        
+        // Проверяем, что имя пользователя не пустое
+        if (!username.trim()) {
+          errorMessage.textContent = 'Введите имя пользователя';
+          errorMessage.style.backgroundColor = '#ff5252';
+          errorMessage.style.display = 'block';
+          setTimeout(() => {
+            errorMessage.style.display = 'none';
+          }, 3000);
+          return;
+        }
+        
+        // Проверяем, что пароль не пустой
+        if (!password) {
+          errorMessage.textContent = 'Введите пароль';
+          errorMessage.style.backgroundColor = '#ff5252';
+          errorMessage.style.display = 'block';
+          setTimeout(() => {
+            errorMessage.style.display = 'none';
+          }, 3000);
+          return;
+        }
+        
+        // Проверяем, совпадают ли пароли
+        if (password !== confirmPassword) {
+          errorMessage.textContent = 'Пароли не совпадают';
+          errorMessage.style.backgroundColor = '#ff5252';
+          errorMessage.style.display = 'block';
+          setTimeout(() => {
+            errorMessage.style.display = 'none';
+          }, 3000);
+          return;
+        }
+        
+        try {
+          // Показываем сообщение о загрузке
+          errorMessage.textContent = 'Регистрация...';
+          errorMessage.style.display = 'block';
+          errorMessage.style.backgroundColor = '#2196F3';
+          
+          console.log('Отправка данных для регистрации:', {
+            username,
+            passwordLength: password.length,
+            hasProfileImage: !!profileImageData
+          });
+          
+          const response = await window.api.register(username, password, profileImageData);
+          
+          console.log('Ответ от сервера:', response);
+          
+          // Скрываем сообщение о загрузке
+          errorMessage.style.display = 'none';
+          
+          if (response.success) {
+            // Показываем сообщение об успешной регистрации
+            errorMessage.textContent = 'Регистрация успешна! Перенаправление...';
+            errorMessage.style.backgroundColor = '#4CAF50';
+            errorMessage.style.display = 'block';
+            
+            // Перенаправляем на страницу входа с параметром успеха через 2 секунды
+            setTimeout(() => {
+              window.location.href = 'index.html?success=true';
+            }, 2000);
+          } else {
+            // Показываем сообщение об ошибке
+            errorMessage.textContent = response.message || 'Ошибка при регистрации';
+            errorMessage.style.backgroundColor = '#ff5252';
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+              errorMessage.style.display = 'none';
+            }, 3000);
+          }
+        } catch (error) {
+          console.error('Ошибка регистрации:', error);
+          errorMessage.textContent = 'Ошибка при регистрации: ' + (error.message || 'Неизвестная ошибка');
+          errorMessage.style.backgroundColor = '#ff5252';
+          errorMessage.style.display = 'block';
+          setTimeout(() => {
+            errorMessage.style.display = 'none';
+          }, 3000);
+        }
+      });
+    });
+  </script>
+</body>
+</html> 
